@@ -1,0 +1,95 @@
+import * as SQLite from 'expo-sqlite';
+
+// Abrir la base de datos
+const db = SQLite.openDatabaseAsync('DBrain.db');
+
+// Inicializar las tablas
+export const initializeDatabase = () => { 
+    db.transaction(tx => {
+        // Tabla para almacenar preguntas
+        tx.executeSql(
+            `CREATE TABLE IF NOT EXISTS questions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                level INTEGER,
+                question TEXT
+            );`
+        );
+
+        // Tabla para almacenar opcion multiple         
+        tx.executeSql(
+            `CREATE TABLE IF NOT EXISTS options (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                question_id INTEGER,  -- Foreign key from questions
+                option_text TEXT,
+                is_correct BOOLEAN,   -- 1 for correct, 0 for incorrect
+                FOREIGN KEY (question_id) REFERENCES questions(id)
+            );`
+        );
+
+        // Tabla para almacenar progreso del usuario
+        tx.executeSql(
+            `CREATE TABLE IF NOT EXISTS progreso (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nivel_actual INTEGER NOT NULL,
+                completado INTEGER NOT NULL CHECK (completado IN (0, 1)) DEFAULT 0
+            );`
+        );
+
+        // Tabla para almacenar el nombre del usuario
+        tx.executeSql(
+            `CREATE TABLE IF NOT EXISTS nombre (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username text NOT NULL
+            );`
+        );
+
+    });
+};
+
+// Función para agregar una pregunta
+export const agregarPregunta = (pregunta: string, respuestaCorrecta: string, nivel: number) => {
+    db.transaction(tx => {
+        tx.executeSql(
+            `INSERT INTO preguntas (pregunta, respuesta_correcta, nivel) VALUES (?, ?, ?);`,
+            [pregunta, respuestaCorrecta, nivel]
+        );
+    });
+};
+
+// Función para obtener preguntas
+export const obtenerPreguntas = (nivel: number, callback: (result: SQLite.SQLResultSet) => void) => {
+    db.transaction(tx => {
+        tx.executeSql(
+            `SELECT * FROM preguntas WHERE nivel = ?;`,
+            [nivel],
+            (_, result) => callback(result)
+        );
+    });
+};
+
+// Función para actualizar el progreso del usuario
+export const actualizarProgreso = (nivelActual: number, completado: boolean) => {
+    db.transaction(tx => {
+        tx.executeSql(
+            `INSERT OR REPLACE INTO progreso (nombre_usuario, nivel_actual, completado) VALUES (?, ?, ?);`,
+            [nombreUsuario, nivelActual, completado ? 1 : 0]
+        );
+    });
+};
+
+// Función para actualizar el nombre del usuario
+export const actualizarNombre = (nombreUsuario: string) => {
+    db.transaction(tx => {
+        tx.executeSql(
+            `INSERT OR REPLACE INTO nombre (username) VALUES (username);`,
+            [username],
+            (_, result) => {
+                console.log("Nombre del usuario actualizado", result);
+            },
+            (txObj, error) => {
+                console.log("Error al actualizar el nombre del usuario", error);
+            }
+            
+        );
+    });
+};
